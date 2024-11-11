@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useRouter } from 'next/router';
 
 export default function CryptoTable() {
+  const router = useRouter();
   const [cryptoData, setCryptoData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,6 +68,11 @@ export default function CryptoTable() {
     return names[symbol];
   };
 
+  const handleTrade = (symbol) => {
+    const baseSymbol = symbol.replace('USDT', '').toLowerCase();
+    router.push(`/trade/${baseSymbol}`);
+  };
+
   return (
     <div className="p-8 bg-cream min-h-screen flex items-center justify-center">
       <table className="w-3/4 bg-white rounded-lg overflow-hidden shadow-lg">
@@ -112,7 +119,10 @@ export default function CryptoTable() {
                   </span>
                 </td>
                 <td className="px-4 py-2 whitespace-nowrap">
-                  <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                  <button 
+                    onClick={() => handleTrade(crypto.symbol)}
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  >
                     Trade
                   </button>
                 </td>
