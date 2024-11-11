@@ -254,11 +254,11 @@ export default function TradePage() {
           {/* Trading Buttons */}
           <div className="space-y-3">
             <button 
-              className={`w-full py-4 px-4 rounded-lg transition-all border border-4 border-gray-900
+              className={`w-full py-4 px-4 rounded-lg transition-all
                         flex items-center justify-center gap-2 font-semibold
                         ${!betAmount || error 
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                          : 'bg-gray-900 text-white hover:bg-gray-800'}`}
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed  border border-4 border-gray-100' 
+                          : 'bg-gray-900 text-white hover:bg-gray-800  border border-4 border-gray-900'}`}
               onClick={() => console.log('Up')}
               disabled={!betAmount || error}
             >
@@ -267,11 +267,11 @@ export default function TradePage() {
             </button>
             
             <button 
-              className={`w-full py-4 px-4 rounded-lg transition-all border border-4 border-gray-900
+              className={`w-full py-4 px-4 rounded-lg transition-all
                         flex items-center justify-center gap-2 font-semibold
                         ${!betAmount || error 
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                          : 'bg-white text-gray-900 hover:bg-gray-100'}`}
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed  border border-4 border-gray-100' 
+                          : 'bg-white text-gray-900 hover:bg-gray-100 border border-4 border-gray-900'}`}
               onClick={() => console.log('Down')}
               disabled={!betAmount || error}
             >
