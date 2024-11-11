@@ -5,7 +5,7 @@ export default function CryptoTable() {
   const [cryptoData, setCryptoData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT'];
+  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT'];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,9 +60,8 @@ export default function CryptoTable() {
     const names = {
       'BTCUSDT': 'Bitcoin',
       'ETHUSDT': 'Ethereum',
-      'BNBUSDT': 'Binance Coin',
-      'XRPUSDT': 'Ripple',
-      'ADAUSDT': 'Cardano'
+      'SOLUSDT': 'Solana',
+      'DOGEUSDT': 'Dogecoin'
     };
     return names[symbol];
   };
