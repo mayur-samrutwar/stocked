@@ -25,6 +25,8 @@ export default function TradePage() {
   });
   const [timeLeft, setTimeLeft] = useState(300); // Start with 5 minutes (300 seconds)
 
+  const PAYOUT = 50;
+
   // Wait for id to be available
   useEffect(() => {
     if (id) {
@@ -154,6 +156,23 @@ export default function TradePage() {
 
     setBetAmount(value);
     setError('');
+  };
+
+  const handleBet = (betType) => {
+    const startTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    const expiryTime = startTime + selectedTime; // Add selected duration (120s or 300s)
+
+    const betData = {
+      betId: 1,
+      startTime,
+      expiryTime,
+      betType,
+      tokenType: id?.toLowerCase(),
+      amount: parseFloat(betAmount),
+      payout: PAYOUT
+    };
+
+    console.log(betData);
   };
 
   if (isLoading) {
@@ -288,7 +307,7 @@ export default function TradePage() {
                         ${!betAmount || error 
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                           : 'bg-gray-900 text-white hover:bg-gray-800'}`}
-              onClick={() => console.log('Up')}
+              onClick={() => handleBet('up')}
               disabled={!betAmount || error}
             >
               <ArrowUpCircle size={20} />
@@ -301,7 +320,7 @@ export default function TradePage() {
                         ${!betAmount || error 
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              onClick={() => console.log('Down')}
+              onClick={() => handleBet('down')}
               disabled={!betAmount || error}
             >
               <ArrowDownCircle size={20} />
