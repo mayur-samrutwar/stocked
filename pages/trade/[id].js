@@ -10,8 +10,7 @@ export default function TradePage() {
   const { id } = router.query;
   const { address } = useAccount();
   const { data: balance } = useBalance({
-    address,
-    token: '0x...'
+    address
   });
 
   const [selectedTime, setSelectedTime] = useState(120);
@@ -62,6 +61,7 @@ export default function TradePage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Keep price update logic separate
   useEffect(() => {
     if (!id) return;
 
