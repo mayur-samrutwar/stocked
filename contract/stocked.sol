@@ -9,6 +9,7 @@ contract BinaryPrediction is Ownable, ReentrancyGuard {
     struct Bet {
         uint256 betId;
         string tokenType;
+        string betType;
         uint256 startTime;
         uint256 expiryTime;
         uint256 betAmount;
@@ -23,7 +24,7 @@ contract BinaryPrediction is Ownable, ReentrancyGuard {
     mapping(address => Bet[]) private userBets;
     
     // Events
-    event BetCreated(address indexed user, uint256 betId, uint256 amount);
+    event BetCreated(address indexed user, uint256 betId, uint256 amount, string betType);
     event RewardClaimed(address indexed user, uint256 betId, uint256 amount);
     event ContractFunded(address indexed funder, uint256 amount);
     event FundsClaimed(address indexed owner, uint256 amount);
@@ -35,6 +36,7 @@ contract BinaryPrediction is Ownable, ReentrancyGuard {
     // Function to create a new bet
     function createBet(
         string memory tokenType,
+        string memory betType,
         uint256 startTime,
         uint256 expiryTime,
         uint256 betAmount,
@@ -47,6 +49,7 @@ contract BinaryPrediction is Ownable, ReentrancyGuard {
         Bet memory newBet = Bet({
             betId: betCounter,
             tokenType: tokenType,
+            betType: betType,
             startTime: startTime,
             expiryTime: expiryTime,
             betAmount: betAmount,
@@ -56,7 +59,7 @@ contract BinaryPrediction is Ownable, ReentrancyGuard {
 
         userBets[msg.sender].push(newBet);
         
-        emit BetCreated(msg.sender, betCounter, betAmount);
+        emit BetCreated(msg.sender, betCounter, betAmount, betType);
         betCounter++;
     }
 
@@ -64,6 +67,17 @@ contract BinaryPrediction is Ownable, ReentrancyGuard {
     function getBetsForUser(address user) external view returns (Bet[] memory) {
         return userBets[user];
     }
+
+// Function to get bet by id 
+ function getBetById(uint256 betId) external view returns (Bet memory) {
+    Bet[] memory userBetList = userBets[msg.sender];
+    for (uint256 i = 0; i < userBetList.length; i++) {
+        if (userBetList[i].betId == betId) {
+            return userBetList[i];
+        }
+    }
+    revert("Bet not found");
+}
 
     // Function to claim reward
     function claimReward(uint256 betId) external nonReentrant {

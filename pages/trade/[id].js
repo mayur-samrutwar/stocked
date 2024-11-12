@@ -1,9 +1,13 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAccount, useBalance } from 'wagmi';
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { ArrowUpCircle, ArrowDownCircle } from 'react-feather';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { parseEther } from 'viem';
+import stockedABI from '../../contract/abi/stocked.json';
+
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; 
 
 export default function TradePage() {
   const router = useRouter();
@@ -158,21 +162,33 @@ export default function TradePage() {
     setError('');
   };
 
-  const handleBet = (betType) => {
+  const { writeContract, data: hash } = useWriteContract();
+
+  const handleBet = async (betType) => {
     const startTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds
     const expiryTime = startTime + selectedTime; // Add selected duration (120s or 300s)
 
-    const betData = {
-      betId: 1,
-      startTime,
-      expiryTime,
-      betType,
-      tokenType: id?.toLowerCase(),
-      amount: parseFloat(betAmount),
-      payout: PAYOUT
-    };
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: stockedABI,
+        functionName: 'createBet',
+        args: [
+          id?.toLowerCase(), // tokenType
+          betType, // 'up' or 'down'
+          BigInt(startTime),
+          BigInt(expiryTime),
+          parseEther(betAmount), // Convert to wei
+          BigInt(PAYOUT) // payoutPercentage
+        ],
+        value: parseEther(betAmount), // Send ETH with the transaction
+      });
 
-    console.log(betData);
+      console.log('Bet placed successfully');
+    } catch (error) {
+      console.error('Error placing bet:', error);
+      setError('Failed to place bet. Please try again.');
+    }
   };
 
   if (isLoading) {
