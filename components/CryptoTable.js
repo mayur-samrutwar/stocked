@@ -74,63 +74,86 @@ export default function CryptoTable() {
   };
 
   return (
-    <div className="p-8 bg-cream min-h-screen flex items-center justify-center">
-      <table className="w-3/4 bg-white rounded-lg overflow-hidden shadow-lg">
-        <thead className="bg-dark-cream">
-          <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Symbol</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Name</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Price (USDT)</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">24h Change</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">5m Change</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"></th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {loading ? (
-            <tr>
-              <td colSpan="6" className="px-4 py-2 text-center">Loading...</td>
+    <div className="min-h-screen bg-white p-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Markets</h1>
+      
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-white border-b border-gray-200">
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Asset</th>
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Name</th>
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Price</th>
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">24h Change</th>
+              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">5m Change</th>
+              <th className="px-6 py-4 text-right text-sm font-medium text-gray-700"></th>
             </tr>
-          ) : (
-            cryptoData.map((crypto) => (
-              <tr key={crypto.symbol}>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <img
-                      src={`/crypto-icons/${crypto.symbol.toLowerCase().replace('usdt', '')}.png`}
-                      alt={crypto.name}
-                      className="w-6 h-6 mr-2"
-                    />
-                    {crypto.symbol}
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-4">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
                   </div>
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap">{crypto.name}</td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  ${parseFloat(crypto.price).toFixed(2)}
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  <span className={crypto.priceChange24h > 0 ? 'text-green-600' : 'text-red-600'}>
-                    {crypto.priceChange24h.toFixed(2)}%
-                  </span>
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  <span className={crypto.priceChange5m > 0 ? 'text-green-600' : 'text-red-600'}>
-                    {crypto.priceChange5m.toFixed(2)}%
-                  </span>
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap">
-                  <button 
-                    onClick={() => handleTrade(crypto.symbol)}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                  >
-                    Trade
-                  </button>
-                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              cryptoData.map((crypto) => (
+                <tr key={crypto.symbol} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 relative bg-white rounded-full p-1.5 shadow-sm mr-3">
+                        <img
+                          src={`/crypto-icons/${crypto.symbol.toLowerCase().replace('usdt', '')}.png`}
+                          alt={crypto.name}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/crypto-icons/default.png';
+                          }}
+                        />
+                      </div>
+                      <span className="font-medium text-gray-900">{crypto.symbol}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                    {crypto.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="font-medium text-gray-900">
+                      ${parseFloat(crypto.price).toFixed(2)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`font-medium ${
+                      crypto.priceChange24h > 0 ? 'text-green-600' : 'text-red-500'
+                    }`}>
+                      {crypto.priceChange24h > 0 ? '+' : ''}{crypto.priceChange24h.toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`font-medium ${
+                      crypto.priceChange5m > 0 ? 'text-green-600' : 'text-red-500'
+                    }`}>
+                      {crypto.priceChange5m > 0 ? '+' : ''}{crypto.priceChange5m.toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <button 
+                      onClick={() => handleTrade(crypto.symbol)}
+                      className="py-2 px-4 rounded-lg transition-all
+                               bg-gray-900 text-white hover:bg-gray-800"
+                    >
+                      Trade
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

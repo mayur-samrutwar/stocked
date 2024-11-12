@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState, useRef } from 'react';
-import { createChart } from 'lightweight-charts';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAccount, useBalance } from 'wagmi';
 import { ArrowUpCircle, ArrowDownCircle } from 'react-feather';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function TradePage() {
   const router = useRouter();
@@ -11,18 +11,20 @@ export default function TradePage() {
   const { address } = useAccount();
   const { data: balance } = useBalance({
     address,
-    token: '0x...' // Add your USDT contract address here
+    token: '0x...'
   });
 
-  const [selectedTime, setSelectedTime] = useState(120); // 2 mins default
+  const [selectedTime, setSelectedTime] = useState(120);
   const [betAmount, setBetAmount] = useState('');
   const [error, setError] = useState('');
-
-  const chartContainerRef = useRef(null);
-  const [timeLeft, setTimeLeft] = useState(300);
   const [currentPrice, setCurrentPrice] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [chart, setChart] = useState(null);
+  const [chartData, setChartData] = useState([]);
+  const [dimensions, setDimensions] = useState({
+    width: 800,
+    height: 500,
+  });
+  const [timeLeft, setTimeLeft] = useState(300); // Start with 5 minutes (300 seconds)
 
   // Wait for id to be available
   useEffect(() => {
@@ -36,7 +38,8 @@ export default function TradePage() {
     if (!id) return;
     
     if (timeLeft === 0) {
-      setTimeLeft(300);
+      // Reset timer based on selected time
+      setTimeLeft(selectedTime);
       return;
     }
 
@@ -45,7 +48,12 @@ export default function TradePage() {
     }, 1000);
 
     return () => clearInterval(timerInterval);
-  }, [timeLeft, id]);
+  }, [timeLeft, id, selectedTime]);
+
+  // When selected time changes, reset the timer
+  useEffect(() => {
+    setTimeLeft(selectedTime);
+  }, [selectedTime]);
 
   // Format timer to mm:ss
   const formatTime = (seconds) => {
@@ -54,38 +62,50 @@ export default function TradePage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Chart initialization
   useEffect(() => {
-    if (!id || !chartContainerRef.current) return;
+    if (!id) return;
 
-    const chartInstance = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: 500,
-      layout: {
-        background: { color: '#ffffff' },
-        textColor: '#333333',
-      },
-      grid: {
-        vertLines: { color: '#f0f0f0' },
-        horzLines: { color: '#f0f0f0' },
-      },
-      timeScale: {
-        borderColor: '#f0f0f0',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-    });
+    const fetchPrice = async () => {
+      try {
+        const response = await axios.get(`https://api.binance.com/api/v3/ticker/price`, {
+          params: {
+            symbol: `${id?.toUpperCase()}USDT`
+          }
+        });
+        setCurrentPrice(parseFloat(response.data.price));
+      } catch (error) {
+        console.error('Error fetching price:', error);
+      }
+    };
 
-    const candlestickSeries = chartInstance.addCandlestickSeries({
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-    });
+    fetchPrice();
+    const priceInterval = setInterval(fetchPrice, 1000);
 
-    const fetchChartData = async () => {
+    return () => clearInterval(priceInterval);
+  }, [id]);
+
+  // Add window resize handler
+  useEffect(() => {
+    function handleResize() {
+      const chartContainer = document.getElementById('chart-container');
+      if (chartContainer) {
+        setDimensions({
+          width: chartContainer.clientWidth,
+          height: 500,
+        });
+      }
+    }
+
+    handleResize(); // Initial size
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Fetch chart data
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchPriceData = async () => {
       try {
         const response = await axios.get(`https://api.binance.com/api/v3/klines`, {
           params: {
@@ -95,39 +115,23 @@ export default function TradePage() {
           }
         });
 
-        const chartData = response.data.map(d => ({
-          time: d[0] / 1000,
-          open: parseFloat(d[1]),
-          high: parseFloat(d[2]),
-          low: parseFloat(d[3]),
-          close: parseFloat(d[4])
+        const formattedData = response.data.map(d => ({
+          time: new Date(d[0]).toLocaleTimeString(),
+          price: parseFloat(d[4]), // Using close price
         }));
 
-        candlestickSeries.setData(chartData);
-        setCurrentPrice(chartData[chartData.length - 1].close);
+        setChartData(formattedData);
+        setCurrentPrice(formattedData[formattedData.length - 1].price);
       } catch (error) {
-        console.error('Error fetching chart data:', error);
+        console.error('Error fetching price data:', error);
       }
     };
 
-    fetchChartData();
-    const dataInterval = setInterval(fetchChartData, 1000);
-
-    // Handle resize
-    const handleResize = () => {
-      chartInstance.applyOptions({
-        width: chartContainerRef.current.clientWidth
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      clearInterval(dataInterval);
-      window.removeEventListener('resize', handleResize);
-      chartInstance.remove();
-    };
+    fetchPriceData();
+    const interval = setInterval(fetchPriceData, 1000);
+    return () => clearInterval(interval);
   }, [id]);
+
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
@@ -190,10 +194,35 @@ export default function TradePage() {
       <div className="flex gap-8">
         {/* Chart Section */}
         <div className="flex-grow">
-          <div 
-            ref={chartContainerRef} 
-            className="w-full h-[500px] bg-white border border-gray-200 rounded-lg shadow-sm"
-          />
+          <div className="w-full h-[500px] bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 12 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis 
+                  domain={['auto', 'auto']}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip />
+                <Area 
+                  type="monotone" 
+                  dataKey="price" 
+                  stroke="#8884d8" 
+                  fillOpacity={1} 
+                  fill="url(#colorPrice)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Trading Section */}
@@ -254,11 +283,11 @@ export default function TradePage() {
           {/* Trading Buttons */}
           <div className="space-y-3">
             <button 
-              className={`w-full py-4 px-4 rounded-lg transition-all
-                        flex items-center justify-center gap-2 font-semibold
+              className={`w-full py-3 px-4 rounded-lg transition-all
+                        flex items-center justify-center gap-2
                         ${!betAmount || error 
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed  border border-4 border-gray-100' 
-                          : 'bg-gray-900 text-white hover:bg-gray-800  border border-4 border-gray-900'}`}
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gray-900 text-white hover:bg-gray-800'}`}
               onClick={() => console.log('Up')}
               disabled={!betAmount || error}
             >
@@ -267,11 +296,11 @@ export default function TradePage() {
             </button>
             
             <button 
-              className={`w-full py-4 px-4 rounded-lg transition-all
-                        flex items-center justify-center gap-2 font-semibold
+              className={`w-full py-3 px-4 rounded-lg transition-all
+                        flex items-center justify-center gap-2
                         ${!betAmount || error 
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed  border border-4 border-gray-100' 
-                          : 'bg-white text-gray-900 hover:bg-gray-100 border border-4 border-gray-900'}`}
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               onClick={() => console.log('Down')}
               disabled={!betAmount || error}
             >
