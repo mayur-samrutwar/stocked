@@ -242,6 +242,60 @@ export default function TradePage() {
     return amount.toFixed(6); // Limit to 6 decimal places
   };
 
+  // Add this function after the formatTimestamp function
+  const checkPredictionResult = async (bet) => {
+    try {
+      // Get historical klines (candlestick) data that covers both timestamps
+      const response = await axios.get(`https://api.binance.com/api/v3/klines`, {
+        params: {
+          symbol: `${bet.tokenType.toUpperCase()}USDT`,
+          interval: '1m',
+          startTime: Number(bet.startTime) * 1000, // Convert to milliseconds
+          endTime: (Number(bet.expiryTime) * 1000) + 60000 // Add 1 minute to ensure we get the expiry candle
+        }
+      });
+
+      if (!response.data || response.data.length < 2) {
+        console.error('Insufficient price data');
+        return false;
+      }
+
+      const startPrice = parseFloat(response.data[0][4]); // Close price of start candle
+      const endPrice = parseFloat(response.data[response.data.length - 1][4]); // Close price of end candle
+
+      // Compare prices based on bet type
+      if (bet.betType === 'up') {
+        return endPrice > startPrice;
+      } else {
+        return endPrice < startPrice;
+      }
+    } catch (error) {
+      console.error('Error checking prediction:', error);
+      return false;
+    }
+  };
+
+  // Add this state for tracking prediction results
+  const [predictionResults, setPredictionResults] = useState({});
+
+  // Add this effect to check predictions for all eligible bets
+  useEffect(() => {
+    const checkBets = async () => {
+      if (!userBets) return;
+
+      const results = {};
+      for (const bet of userBets) {
+        // Only check completed, unclaimed bets
+        if (!bet.rewardStatus && Number(bet.expiryTime) <= Date.now() / 1000) {
+          results[bet.betId.toString()] = await checkPredictionResult(bet);
+        }
+      }
+      setPredictionResults(results);
+    };
+
+    checkBets();
+  }, [userBets]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -465,14 +519,27 @@ export default function TradePage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <button
                       onClick={() => handleClaim(bet.betId)}
-                      disabled={bet.rewardStatus || Number(bet.expiryTime) > Date.now() / 1000}
+                      disabled={
+                        bet.rewardStatus || 
+                        Number(bet.expiryTime) > Date.now() / 1000 ||
+                        !predictionResults[bet.betId.toString()]
+                      }
                       className={`px-3 py-1 rounded-md ${
                         bet.rewardStatus || Number(bet.expiryTime) > Date.now() / 1000
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                          : predictionResults[bet.betId.toString()]
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-red-100 text-red-400 cursor-not-allowed'
                       }`}
                     >
-                      Claim
+                      {bet.rewardStatus 
+                        ? 'Claimed'
+                        : Number(bet.expiryTime) > Date.now() / 1000
+                          ? 'Not Ready'
+                          : predictionResults[bet.betId.toString()]
+                            ? 'Claim'
+                            : 'Lost'
+                      }
                     </button>
                   </td>
                 </tr>
