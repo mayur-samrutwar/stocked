@@ -1,10 +1,10 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useContractRead } from 'wagmi';
 import { ArrowUpCircle, ArrowDownCircle } from 'react-feather';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { parseEther } from 'viem';
+import { parseEther, formatEther } from 'viem';
 import stockedABI from '../../contract/abi/stocked.json';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; 
@@ -28,6 +28,7 @@ export default function TradePage() {
     height: 500,
   });
   const [timeLeft, setTimeLeft] = useState(300); // Start with 5 minutes (300 seconds)
+  const [userBets, setUserBets] = useState([]);
 
   const PAYOUT = 50;
 
@@ -138,6 +139,37 @@ export default function TradePage() {
     return () => clearInterval(interval);
   }, [id]);
 
+  const { data: betsData } = useContractRead({
+    address: CONTRACT_ADDRESS,
+    abi: stockedABI,
+    functionName: 'getBetsForUser',
+    args: [address],
+    watch: true,
+  });
+
+  useEffect(() => {
+    if (betsData) {
+      setUserBets(betsData);
+    }
+  }, [betsData]);
+
+  const formatTimestamp = (timestamp) => {
+    return new Date(Number(timestamp) * 1000).toLocaleString();
+  };
+
+  const handleClaim = async (betId) => {
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: stockedABI,
+        functionName: 'claimReward',
+        args: [BigInt(betId)],
+      });
+      console.log('Claim submitted for bet:', betId);
+    } catch (error) {
+      console.error('Error claiming reward:', error);
+    }
+  };
 
   const handleAmountChange = (e) => {
     const value = e.target.value;
@@ -343,6 +375,75 @@ export default function TradePage() {
               Down
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* User Bets Table */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">History</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse bg-white shadow-sm rounded-lg">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bet ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Token</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Direction</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {userBets.map((bet) => (
+                <tr key={bet.betId.toString()}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {bet.betId.toString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {bet.tokenType.toUpperCase()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatTimestamp(bet.startTime)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatTimestamp(bet.expiryTime)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatEther(bet.betAmount)} ETH
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span className={`px-2 py-1 rounded-full ${
+                      bet.betType === 'up' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {bet.betType}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">
+                      {bet.rewardStatus ? 'Claimed' : 'Pending'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <button
+                      onClick={() => handleClaim(bet.betId)}
+                      disabled={bet.rewardStatus || Number(bet.expiryTime) > Date.now() / 1000}
+                      className={`px-3 py-1 rounded-md ${
+                        bet.rewardStatus || Number(bet.expiryTime) > Date.now() / 1000
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Claim
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
