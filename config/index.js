@@ -35,7 +35,58 @@ if (!projectId) {
       testnet: true
   })
 
-export const networks = [ baseSepolia];
+  const rootstock = defineChain({
+    id: 31,
+    name: 'Rootstock Testnet',
+    nativeCurrency: {
+      decimals: 18,
+      name: 'TRBTC',
+      symbol: 'tRBTC',
+    },
+    rpcUrls: {
+        default: {
+          http: ['https://rpc.testnet.rootstock.io/Nr1VeCKWPG6wg7glJRkc17Wi8Keb9M-T'],
+        },
+        public: {
+          http: ['https://rpc.testnet.rootstock.io/Nr1VeCKWPG6wg7glJRkc17Wi8Keb9M-T'],
+        },
+      },
+      blockExplorers: {
+        default: {
+          name: 'Rootstock Explorer',
+          url: 'https://explorer.testnet.rootstock.io/',
+        },
+      },
+      testnet: true
+  })
+
+  const citrea = defineChain({
+    id: 5115,
+    name: 'Citrea Testnet',
+    nativeCurrency: {
+      decimals: 18,
+      name: 'Citrea BTC',
+      symbol: 'cBTC',
+    },
+    rpcUrls: {
+        default: {
+          http: ['https://rpc.testnet.citrea.xyz'],
+        },
+        public: {
+          http: ['https://rpc.testnet.citrea.xyz'],
+        },
+      },
+      blockExplorers: {
+        default: {
+          name: 'Citrea Explorer',
+          url: 'https://explorer.testnet.citrea.xyz',
+        },
+      },
+      testnet: true
+  })
+
+
+export const networks = [ baseSepolia, citrea, rootstock];
 
 
 // Set up the Wagmi Adapter (Config)

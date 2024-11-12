@@ -1,11 +1,12 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useContractRead } from 'wagmi';
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useContractRead, useChainId } from 'wagmi';
 import { ArrowUpCircle, ArrowDownCircle } from 'react-feather';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { parseEther, formatEther } from 'viem';
 import stockedABI from '../../contract/abi/stocked.json';
+import { networks } from '@/config';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; 
 
@@ -31,6 +32,17 @@ export default function TradePage() {
   const [userBets, setUserBets] = useState([]);
 
   const PAYOUT = 50;
+
+  const chainId = useChainId();
+
+  const getCurrentChainInfo = () => {
+    const currentChain = networks.find(network => network.id === chainId);
+    return currentChain?.nativeCurrency || {
+      symbol: 'ETH',
+      decimals: 18,
+      name: 'Ether'
+    };
+  };
 
   // Wait for id to be available
   useEffect(() => {
@@ -359,7 +371,7 @@ export default function TradePage() {
 
               {balance && (
                 <div className="text-sm text-gray-500">
-                  Balance: {parseFloat(balance.formatted).toFixed(2)} USDT
+                  Balance: {parseFloat(balance.formatted).toFixed(10)} {getCurrentChainInfo().symbol}
                 </div>
               )}
               {error && (
@@ -434,7 +446,7 @@ export default function TradePage() {
                     {formatTimestamp(bet.expiryTime)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatEther(bet.betAmount)} ETH
+                    {parseFloat(formatEther(bet.betAmount)).toFixed(10)} {getCurrentChainInfo().symbol}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <span className={`px-2 py-1 rounded-full ${
