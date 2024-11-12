@@ -223,6 +223,13 @@ export default function TradePage() {
     }
   };
 
+  // Add this helper function near your other functions
+  const calculatePercentage = (percentage) => {
+    if (!balance) return '0';
+    const amount = (parseFloat(balance.formatted) * percentage) / 100;
+    return amount.toFixed(6); // Limit to 6 decimal places
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -296,7 +303,7 @@ export default function TradePage() {
         <div className="w-96 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
           {/* Time Selection */}
           <div className="mb-8">
-            <p className="text-sm font-medium text-gray-700 mb-3">Select Time Frame</p>
+            <p className="text-sm font-medium text-gray-700 mb-3">Select Expiry Time</p>
             <div className="grid grid-cols-2 gap-3">
               <button 
                 className={`py-3 px-4 rounded-lg transition-all ${
@@ -334,6 +341,22 @@ export default function TradePage() {
                           focus:outline-none focus:ring-2 focus:ring-gray-400 
                           text-gray-900 placeholder-gray-400"
               />
+              
+              {/* Add percentage buttons */}
+              <div className="flex gap-2 mt-2">
+                {[5, 10, 20].map((percentage) => (
+                  <button
+                    key={percentage}
+                    onClick={() => setBetAmount(calculatePercentage(percentage))}
+                    className="flex-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 
+                              text-gray-700 rounded-lg transition-colors"
+                    disabled={!balance}
+                  >
+                    {percentage}%
+                  </button>
+                ))}
+              </div>
+
               {balance && (
                 <div className="text-sm text-gray-500">
                   Balance: {parseFloat(balance.formatted).toFixed(2)} USDT
